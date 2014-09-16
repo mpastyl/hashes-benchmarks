@@ -3,11 +3,11 @@
 #include <omp.h>
 
 //#include "non_blocking.h"
-//#include "split_ordered.h"
+#include "split_ordered.h"
 //#include "refinable.h"
 //#include "striped.h"
 //#include "cuckoo.h"
-#include "global_lock.h"
+//#include "global_lock.h"
 #include "timers_lib.h"
 #include "tsc.h"
 
@@ -59,9 +59,15 @@ int main(int argc, char **argv){
             //wait 
             for( j = 0;j<wait;j++);
             tsc_start(&tsc_timer);
-            if(op<del_limit) res=Erase(&H,val);
-            else if (op<insert_limit) res=Insert(&H,val);
-            else res=Lookup(&H,val);
+            if(op<del_limit) {
+                res=Erase(&H,val);
+            }
+            else if (op<insert_limit) {
+                res=Insert(&H,val);
+            }
+            else {
+                res=Lookup(&H,val);
+            }
             tsc_pause(&tsc_timer);
          }
          tsc_time = tsc_getsecs(&tsc_timer);

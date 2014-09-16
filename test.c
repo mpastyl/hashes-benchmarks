@@ -3,9 +3,9 @@
 #include <omp.h>
 
 //#include "non_blocking.h"
-//#include "split_ordered.h"
+#include "split_ordered.h"
 //#include "refinable.h"
-#include "cuckoo.h"
+//#include "cuckoo.h"
 
 int main(int argc, char **argv){
 
@@ -24,19 +24,19 @@ int main(int argc, char **argv){
     initialize(&H,32768*512);
 
     //Testing
-    int count_per_thread = 300000/num_threads;
+    int count_per_thread = 3000/num_threads;
     srand(50);
-    int rand_value[300000];
+    int rand_value[3000];
     int i;
     long long int ins_sum=0;
-    for(i=0;i<300000;i++) rand_value[i] = rand()%100000;
+    for(i=0;i<3000;i++) rand_value[i] = rand()%100000;
     #pragma omp parallel num_threads(num_threads) private(i) reduction(+:ins_sum)
     {
         int j;
         int res;
         int index;
         for(j=0;j<count_per_thread;j++){
-            index = (omp_get_thread_num()*count_per_thread +j )%300000;
+            index = (omp_get_thread_num()*count_per_thread +j )%3000;
             res = Insert(&H,rand_value[index]);
             if(res) ins_sum+=rand_value[index];
             /*else {
