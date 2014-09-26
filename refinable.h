@@ -60,7 +60,7 @@ unsigned long long set_both(unsigned long long a, unsigned long long ptr, unsign
 }
 void lock_set (int * locks, int hash_code){
 
-    int indx=hash_code;
+    int indx=64*hash_code;
     //int indx=hash_code % H->locks_length;
     while (1){
         if (!locks[indx]){
@@ -107,7 +107,7 @@ void acquire(struct HashSet *H,int hash_code){
 }
 void unlock_set(int * locks, int hash_code){
 
-    int indx=hash_code;
+    int indx=64*hash_code;
     //int indx=hash_code % H->locks_length;
     locks[indx] = 0;
 }
@@ -202,15 +202,15 @@ void initialize(struct HashSet * H, int capacity){
     }
     H->locks_struct = (struct locks *) malloc(sizeof(struct locks ));
     H->locks_struct->locks_length = capacity;
-    H->locks_struct->locks_array = (int *) malloc(sizeof(int ) * capacity);
-    for(i=0;i<capacity;i++) H->locks_struct->locks_array[i]=0;
+    H->locks_struct->locks_array = (int *) malloc(sizeof(int )* 64* capacity);
+    for(i=0;i<capacity;i++) H->locks_struct->locks_array[i*64]=0;
     H->owner = set_both(H->owner,NULL_VALUE,0);
 
 }
 
 
 int policy(struct HashSet *H){
-    return ((H->setSize/H->capacity) >4);
+    return ((H->setSize/H->capacity) >4000);
 }
 
 void resize(struct HashSet *);
@@ -301,9 +301,9 @@ void resize(struct HashSet *H){
         //all locks should be free now (quiesce ensures that)
         //so we might as well delete the old ones and make new ones
         int * old_locks = H->locks_struct->locks_array;
-        for(i=0;i<old_capacity;i++) if( H->locks_struct->locks_array[i]!=0) printf("thread %d capacity %d HEY!\n",omp_get_thread_num(),H->capacity);
-        int * new_locks = (int *)malloc(sizeof(int) * new_capacity);//edit!
-        for(i=0;i<new_locks_length;i++) new_locks[i]=0;//edit
+        //for(i=0;i<old_capacity;i++) if( H->locks_struct->locks_array[i]!=0) printf("thread %d capacity %d HEY!\n",omp_get_thread_num(),H->capacity);
+        int * new_locks = (int *)malloc(sizeof(int) *64* new_capacity);//edit!
+        for(i=0;i<new_locks_length;i++) new_locks[i*64]=0;//edit
         struct locks * new_locks_struct = (struct locks *) malloc(sizeof(struct locks));
         new_locks_struct->locks_array=new_locks;
         new_locks_struct->locks_length = new_locks_length;

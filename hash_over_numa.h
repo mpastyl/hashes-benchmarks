@@ -230,7 +230,10 @@ int size3;
 int MAX_LOAD = 3;
 
 
-unsigned long long uninitialized;//pointer value that stands for invalid bucket
+unsigned long long uninitialized0;//pointer value that stands for invalid bucket
+unsigned long long uninitialized1;//pointer value that stands for invalid bucket
+unsigned long long uninitialized2;//pointer value that stands for invalid bucket
+unsigned long long uninitialized3;//pointer value that stands for invalid bucket
 
 //remember to set all this as shared
 unsigned long long * T0;
@@ -238,11 +241,11 @@ unsigned long long * T1;
 unsigned long long * T2;
 unsigned long long * T3;
 
-void initialize_bucket(unsigned long long *T ,int bucket,struct priv_pointers *priv){
+void initialize_bucket(unsigned long long *T ,int bucket,struct priv_pointers *priv,unsigned long long *uninitialized ){
     
     int parent = get_parent(bucket);
 
-    if (T[parent]==uninitialized) initialize_bucket(T,parent,priv);
+    if (T[parent]==*uninitialized) initialize_bucket(T,parent,priv,uninitialized);
     
     struct NodeType * dummy = (struct  NodeType *)malloc(sizeof(struct NodeType));
     dummy->key=so_dummykey(bucket);
@@ -254,13 +257,13 @@ void initialize_bucket(unsigned long long *T ,int bucket,struct priv_pointers *p
 }
 
 
-int insert(unsigned long long *T,int *size, int *count ,unsigned int key,struct priv_pointers *priv){
+int insert(unsigned long long *T,int *size, int *count ,unsigned int key,struct priv_pointers *priv,unsigned long long * uninitialized){
     
     struct NodeType * node=(struct NodeType *)malloc(sizeof(struct NodeType));
     node->key = so_regularkey(key);
     int bucket = key % *size;
 
-    if(T[bucket]==uninitialized) initialize_bucket(T,bucket,priv);
+    if(T[bucket]==*uninitialized) initialize_bucket(T,bucket,priv,uninitialized);
     
     if(!list_insert(&(T[bucket]),node,priv)){
         free(node);
@@ -278,11 +281,11 @@ int insert(unsigned long long *T,int *size, int *count ,unsigned int key,struct 
     return 1;
 }
 
-int _delete(unsigned long long *T ,int *size, int *count,unsigned int key,struct priv_pointers *priv){
+int _delete(unsigned long long *T ,int *size, int *count,unsigned int key,struct priv_pointers *priv,unsigned long long *uninitialized){
     
     printf("@ delete\n");
     int bucket = key % *size;
-    if (T[bucket]==uninitialized) initialize_bucket(T,bucket,priv);
+    if (T[bucket]==*uninitialized) initialize_bucket(T,bucket,priv,uninitialized);
 
     if(!list_delete(&(T[bucket]),so_regularkey(key),priv))
         return 0;
@@ -292,10 +295,10 @@ int _delete(unsigned long long *T ,int *size, int *count,unsigned int key,struct
 }
 
 
-int find(unsigned long long *T,int *size, int * count,unsigned int key,struct priv_pointers *priv){
+int find(unsigned long long *T,int *size, int * count,unsigned int key,struct priv_pointers *priv,unsigned long long *uninitialized){
     
     int bucket = key %*size;
-    if (T[bucket]==uninitialized) initialize_bucket(T,bucket,priv);
+    if (T[bucket]==*uninitialized) initialize_bucket(T,bucket,priv,uninitialized);
 
     unsigned long long * temp=&T[bucket];
     return list_find(&temp,so_regularkey(key),priv);
@@ -308,8 +311,14 @@ struct HashSet{
 void _initialize(struct HashSet * H,int _size){
 
     
-    unsigned int dummy_variable = 5; 
-    uninitialized =(unsigned long long) &dummy_variable;//any bucket that points to this address is considered uninitialized
+    unsigned int dummy_variable0 = 5; 
+    unsigned int dummy_variable1 = 5; 
+    unsigned int dummy_variable2 = 5; 
+    unsigned int dummy_variable3 = 5; 
+    uninitialized0 =(unsigned long long) &dummy_variable0;//any bucket that points to this address is considered uninitialized
+    uninitialized1 =(unsigned long long) &dummy_variable1;//any bucket that points to this address is considered uninitialized
+    uninitialized2 =(unsigned long long) &dummy_variable2;//any bucket that points to this address is considered uninitialized
+    uninitialized3 =(unsigned long long) &dummy_variable3;//any bucket that points to this address is considered uninitialized
     //:TODO is the above safe?
 
     
@@ -336,10 +345,10 @@ void _initialize(struct HashSet * H,int _size){
     size2=_size;
     size3=_size;
     for(i=0;i<size0;i++){
-        T0[i]= uninitialized;
-        T1[i]= uninitialized;
-        T2[i]= uninitialized;
-        T3[i]= uninitialized;
+        T0[i]= uninitialized0;
+        T1[i]= uninitialized1;
+        T2[i]= uninitialized2;
+        T3[i]= uninitialized3;
     }
     unsigned long long head0=0;
     unsigned long long head1=0;
@@ -369,15 +378,15 @@ void _initialize(struct HashSet * H,int _size){
 
 struct pub_record{
     int pending;
-    char pad1[(8-sizeof(int ))/sizeof(char)];
+    char pad1[(64-sizeof(int ))/sizeof(char)];
     int serving;
-    char pad2[(8-sizeof(int ))/sizeof(char)];
+    char pad2[(64-sizeof(int ))/sizeof(char)];
     int op;
-    char pad3[(8-sizeof(int ))/sizeof(char)];
+    char pad3[(64-sizeof(int ))/sizeof(char)];
     int value;
-    char pad4[(8-sizeof(int ))/sizeof(char)];
+    char pad4[(64-sizeof(int ))/sizeof(char)];
     int response;
-    char pad5[(8-sizeof(int ))/sizeof(char)];
+    char pad5[(64-sizeof(int ))/sizeof(char)];
 };
 
 struct pub_record *record_array0;
@@ -411,14 +420,15 @@ int wait_for_response(int tid,int k){
     else {
         record_array=record_array3;
     }
-    int count;
+    long long int count=0;
     //while((count<1000000)&&(record_array[tid].pending==1)) count++;//FIXME
     while((record_array[tid].pending==1)) count++;//FIXME
-    while(record_array[tid].serving==1);
+    while(record_array[tid].serving==1)count++;
+    //printf("%lld\n",count);
     return record_array[tid].response;
 }
 
-void find_where_i_belong(struct priv_pointers **priv,unsigned long long **T,int **size,int **count,struct pub_record **record_array){
+void find_where_i_belong(struct priv_pointers **priv,unsigned long long **T,int **size,int **count,struct pub_record **record_array,unsigned long long ** uninitialized){
 
     int tid =omp_get_thread_num();
     if(tid<16){
@@ -427,6 +437,7 @@ void find_where_i_belong(struct priv_pointers **priv,unsigned long long **T,int 
         *size=&size0;
         *count=&count0;
         *record_array=record_array0;
+        *uninitialized = &uninitialized0;
     }
     else if(tid<32){
         *T=T1;
@@ -434,6 +445,7 @@ void find_where_i_belong(struct priv_pointers **priv,unsigned long long **T,int 
         *size=&size1;
         *count=&count1;
         *record_array=record_array1;
+        *uninitialized = &uninitialized1;
     }
     else if(tid<48){
         *T=T2;
@@ -441,6 +453,7 @@ void find_where_i_belong(struct priv_pointers **priv,unsigned long long **T,int 
         *size=&size2;
         *count=&count2;
         *record_array=record_array2;
+        *uninitialized = &uninitialized2;
     }
     else{
         *T=T3;
@@ -448,6 +461,7 @@ void find_where_i_belong(struct priv_pointers **priv,unsigned long long **T,int 
         *size=&size3;
         *count=&count3;
         *record_array=record_array3;
+        *uninitialized = &uninitialized3;
     }
 }
 void push_request(int k,int tid,int op){
@@ -475,7 +489,7 @@ void push_request(int k,int tid,int op){
 
 int PUB_REC_SIZE =64;
 
-void try_access(unsigned long long * T,int *size,int *count,int op,int value, struct pub_record * record_array,struct priv_pointers * priv){
+void try_access(unsigned long long * T,int *size,int *count,int op,int value, struct pub_record * record_array,struct priv_pointers * priv,unsigned long long *uninitialized){
     
     int tid = omp_get_thread_num();
 
@@ -484,16 +498,16 @@ void try_access(unsigned long long * T,int *size,int *count,int op,int value, st
     for ( i=0; i<PUB_REC_SIZE; i++){
         if(record_array[i].pending ==1){
             if( record_array[i].serving ==0){
-                if(!__sync_lock_test_and_set(&(record_array[i].serving),1)){
+                if(!__sync_lock_test_and_set(&(record_array[i].serving),1)){                if(record_array[i].pending==1){
                     if (record_array[i].op==INSERT){
-                        res = insert(T,size,count,record_array[i].value,priv);
+                        res = insert(T,size,count,record_array[i].value,priv,uninitialized);
                     }
                     else if (record_array[i].op==LOOKUP){
-                        res = find(T,size,count,record_array[i].value,priv);
+                        res = find(T,size,count,record_array[i].value,priv,uninitialized);
                     }
                     else if(record_array[i].op==ERASE){
                         printf("%d \n",record_array[i].op);
-                        res = _delete(T,size,count,record_array[i].value,priv);
+                        res = _delete(T,size,count,record_array[i].value,priv,uninitialized);
                     }
                     else{
                         printf("hey!! %d \n",record_array[i].op);
@@ -501,7 +515,8 @@ void try_access(unsigned long long * T,int *size,int *count,int op,int value, st
                     record_array[i].response =res;
                     record_array[i].pending=0;
                     record_array[i].serving=0;
-
+                 }
+                else record_array[i].serving=0;
                 }
             }
         }
@@ -517,10 +532,11 @@ int Insert(struct HashSet *H,int k){
     struct pub_record * record_array;
     int tid =omp_get_thread_num();
     struct priv_pointers * priv;
+    unsigned long long * uninitialized;
 
-    find_where_i_belong(&priv,&T,&size,&count,&record_array);
+    find_where_i_belong(&priv,&T,&size,&count,&record_array,&uninitialized);
     push_request(k,tid,INSERT);
-    try_access(T,size,count,INSERT,k,record_array,priv);
+    try_access(T,size,count,INSERT,k,record_array,priv,uninitialized);
     int res =  wait_for_response(tid,k);
     return res;
 }
@@ -532,10 +548,10 @@ int Lookup(struct HashSet *H, int k){
     struct pub_record * record_array;
     int tid =omp_get_thread_num();
     struct priv_pointers * priv;
+    unsigned long long * uninitialized;
 
 
-
-    find_where_i_belong(&priv,&T,&size,&count,&record_array);
+    find_where_i_belong(&priv,&T,&size,&count,&record_array,&uninitialized);
     push_request(k,tid,LOOKUP);
     /*T=T0;
     size=&size0;
@@ -543,7 +559,7 @@ int Lookup(struct HashSet *H, int k){
     record_array=record_array0;
     priv=&priv0;
     */
-    try_access(T,size,count,LOOKUP,k,record_array,priv);
+    try_access(T,size,count,LOOKUP,k,record_array,priv,uninitialized);
     int res =  wait_for_response(tid,k);
     return res;
 }
@@ -555,10 +571,11 @@ int Erase(struct HashSet *H,int k){
     struct pub_record * record_array;
     int tid =omp_get_thread_num();
     struct priv_pointers * priv;
+    unsigned long long * uninitialized;
 
-    find_where_i_belong(&priv,&T,&size,&count,&record_array);
+    find_where_i_belong(&priv,&T,&size,&count,&record_array,&uninitialized);
     push_request(k,tid,ERASE);
-    try_access(T,size,count,ERASE,k,record_array,priv);
+    try_access(T,size,count,ERASE,k,record_array,priv,uninitialized);
     int res =  wait_for_response(tid,k);
     return res;
 }
@@ -574,13 +591,13 @@ void help_other_threads(){
     struct pub_record * record_array;
     int tid =omp_get_thread_num();
     struct priv_pointers * priv;
-    
+    unsigned long long * uninitialized;
     int temp = __sync_fetch_and_add(&total_threads_finished,1);
     if (temp == (64 -1)) exit(0);
     
-    find_where_i_belong(&priv,&T,&size,&count,&record_array);
+    find_where_i_belong(&priv,&T,&size,&count,&record_array,&uninitialized);
     while(1){
-        try_access(T,size,count,ERASE,0,record_array,priv);
+        try_access(T,size,count,ERASE,0,record_array,priv,uninitialized);
     }
 }
 

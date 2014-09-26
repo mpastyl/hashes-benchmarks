@@ -210,7 +210,7 @@ int get_parent(int bucket){
 int count;
 int size;
 
-int MAX_LOAD = 3;
+int MAX_LOAD = 4000;
 
 
 unsigned long long uninitialized;//pointer value that stands for invalid bucket
@@ -253,6 +253,7 @@ int insert(unsigned int key){
     //printf("count is %d\n",new);
     if ((new/csize) >MAX_LOAD){
         //printf("count is %d and size is %d\n",count,size);
+        printf("resizing\n");
         int res= __sync_bool_compare_and_swap(&size,csize,2*csize);
     }
     return 1;

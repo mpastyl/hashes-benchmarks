@@ -21,7 +21,7 @@ struct HashSet{
 void lock_set (struct HashSet * H, int hash_code){
 
     
-    int indx=hash_code % H->locks_length;
+    int indx=64*(hash_code % H->locks_length);
     while (1){
         if (!H->locks[indx]){
             if(!__sync_lock_test_and_set(&(H->locks[indx]),1)) break;
@@ -31,7 +31,7 @@ void lock_set (struct HashSet * H, int hash_code){
 
 void unlock_set(struct HashSet * H, int hash_code){
 
-    int indx=hash_code % H->locks_length;
+    int indx=64*(hash_code % H->locks_length);
     H->locks[indx] = 0;
 }
 
@@ -121,14 +121,14 @@ void _initialize(struct HashSet * H, int capacity,int lock_length){
         H->table[i]=NULL;
     }
     H->locks_length=lock_length;
-    H->locks=(int *)malloc(sizeof(int) * lock_length);
-    for(i=0;i<lock_length;i++) H->locks[i]=0;
+    H->locks=(int *)malloc(sizeof(int) *64* lock_length);
+    for(i=0;i<lock_length;i++) H->locks[i*64]=0;
 
 }
 
 
 int policy(struct HashSet *H){
-    return ((H->setSize/H->capacity) >4);
+    return ((H->setSize/H->capacity) >4000);
 }
 
 void resize(struct HashSet *);

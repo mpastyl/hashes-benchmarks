@@ -18,8 +18,8 @@ struct CuckooSet{
     int **locks;
 };
 
-int THRESHOLD=8;
-int PROB_SIZE=16;
+int THRESHOLD=2000;
+int PROB_SIZE=4000;
 int LIMIT=160;
 int hash0( int x){
     return x;
